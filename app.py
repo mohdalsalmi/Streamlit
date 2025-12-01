@@ -2,47 +2,68 @@ import streamlit as st
 from PIL import Image
 import google.generativeai as genai
 import pandas as pd
-from numpy.random import default_rng as rng
 
-
-if "summary" not in st.session_state:
-    st.session_state.summary = ""
-
-
-# Hard-code your Gemini API key **only if you're comfortable and understand the risk**
-GEMINI_API_KEY = "AIzaSyDpwsxQ8mw7g4KZYburruvHd9Qbx-prQPU"
+GEMINI_API_KEY = "AIzaSyAhDv18duuEzRTW2Y-GuBu574fwcSsRhJo"
 
 genai.configure(api_key=GEMINI_API_KEY) # type: ignore
 model = genai.GenerativeModel(model_name="gemini-2.5-flash") # type: ignore
 
+if "data" not in st.session_state:
+    st.session_state.data = []
 
 
-st.title("Image Summarizer")
+file = st.file_uploader("Upload image of map", type=["png", "jpeg", "jpg"])
 
-uploaded_file = st.file_uploader("Upload Image", type=(["jpg", "png", "jpeg"]))
+if file:
+    sat_image = Image.open(file)
+    st.image(sat_image)
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_container_width=True)
-
-if st.button("Summarize Image"):
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        with st.spinner("Summarizing image..."):
-            response = model.generate_content(
+if st.button("Analyze image"):
+    if file:    
+        sat_image = Image.open(file)
+        with st.spinner("Analyzing image"):
+            response = model.generate_content([
+                """Analyze the satellite image and return the following:
                 [
-                    "Summarize the contents of this image: ", image
+                {"current_map_state": "the current state of the satellite image place"},
+                {"dataframes_for_polluted": [{"oxygen":"dataframe for oxygen ,example: {"2025": 12, "2026", 14}"}, {"CO2": "dataframe for CO2"}, {"greenery": "dataframe"}]},
+                {"advice": "advice for the user"},
+                {"dataframes_for_non_polluted": [{"oxygen":"dataframe for oxygen ,example: {"2025": 12, "2026", 14}"}, {"CO2": "dataframe for CO2"}, {"greenery": "dataframe"}]},
                 ]
-            )
-        
-        st.session_state.summary = response.text
-        st.toast("Summary Ready!")
+
+                the current map state should return the state of the land shown in the uploaded image. it should be simple and describe the pollution and the greenery of the land and the possible causes.
+                the dataframes_for_polluted should return the dataframes for the future 10 years of pollution in that placethat show for example oxygen precentages and CO2 and greenery
+                the advice should be information on how to reduce pollution on that area
+                the dataframes_for_non_polluted should return the dataframes for the future 10 years if you listened for the advice given above that show for example oxygen precentages and CO2 and greenery
+                The values should be returned in JSON format only
+                """, sat_image
+                
+            ])
+        raw = response.text
+
+            
+        import re, json
+        match = re.search(r"\[.*\]", raw, flags=re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            st.session_state.data = json.loads(json_str)
+            #st.success(str(st.session_state.data))
+        else:
+            st.error("Model did not return valid JSON.")
+            st.write(raw)        
     else:
-        st.error("Please upload an image first")
+        st.error("No file found")
 
-if st.session_state.summary:
-    summary = st.session_state.summary
-    st.subheader("Summary")
-    st.success(summary)
-    st.download_button("Download Summary", summary, "Summary.txt", "text/plain")
+if st.session_state.data:
+    dictionary = st.session_state.data
+    st.header("Current Map State")
+    st.write(dictionary[0]["current_map_state"])
 
+    st.header("Dataframes for Polluted Scenario")
+    st.subheader("Oxygen Levels Over 10 Years")
+    oxygen_polluted_dfs = pd.DataFrame.from_dict(dictionary[1]["dataframes_for_polluted"][0]["oxygen"], orient='index', columns=['Oxygen Level (%)'])
+    st.line_chart(oxygen_polluted_dfs)
+
+
+
+#dictionary[0]["current_map_state"]
