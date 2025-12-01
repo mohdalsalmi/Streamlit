@@ -26,9 +26,9 @@ if st.button("Analyze image"):
                 """Analyze the satellite image and return the following:
                 [
                 {"current_map_state": "the current state of the satellite image place"},
-                {"dataframes_for_polluted": [{"oxygen":"dataframe for oxygen ,example: {"2025": 12, "2026", 14}"}, {"CO2": "dataframe for CO2"}, {"greenery": "dataframe"}]},
+                {"polluted_percentages_after_10_years": [{"oxygen":{"value": value after 10 years, "delta": delta from the last 10 years. can be in minus}, {"CO2": {"value": value after 10 years, "delta": delta from the last 10 years. can be in minus} }, {"greenery": {"value": value after 10 years, "delta": delta from the last 10 years. can be in minus} }]},
                 {"advice": "advice for the user"},
-                {"dataframes_for_non_polluted": [{"oxygen":"dataframe for oxygen ,example: {"2025": 12, "2026", 14}"}, {"CO2": "dataframe for CO2"}, {"greenery": "dataframe"}]},
+                {"non_polluted_percentages_after_10_years": [{"oxygen":{"value": value after 10 years, "delta": delta from the last 10 years. can be in minus}, {"CO2": {"value": value after 10 years, "delta": delta from the last 10 years. can be in minus} }, {"greenery": {"value": value after 10 years, "delta": delta from the last 10 years. can be in minus} }]},
                 ]
 
                 the current map state should return the state of the land shown in the uploaded image. it should be simple and describe the pollution and the greenery of the land and the possible causes.
@@ -58,12 +58,12 @@ if st.session_state.data:
     dictionary = st.session_state.data
     st.header("Current Map State")
     st.write(dictionary[0]["current_map_state"])
-
-    st.header("Dataframes for Polluted Scenario")
-    st.subheader("Oxygen Levels Over 10 Years")
-    oxygen_polluted_dfs = pd.DataFrame.from_dict(dictionary[1]["dataframes_for_polluted"][0]["oxygen"], orient='index', columns=['Oxygen Level (%)'])
-    st.line_chart(oxygen_polluted_dfs)
-
-
+    st.header("Polluted Scenario")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric("Oxygen after 10 years", str(dictionary[1]["polluted_percentages_after_10_years"][0]["oxygen"]["value"]) + "%", delta=dictionary[1]["polluted_percentages_after_10_years"][0]["oxygen"]["delta"])
+    with c2:
+        st.metric("CO2 after 10 years", str(dictionary[1]["polluted_percentages_after_10_years"][1]["CO2"]["value"]) + "%", delta=dictionary[1]["polluted_percentages_after_10_years"][0]["oxygen"]["delta"])
+  
 
 #dictionary[0]["current_map_state"]
